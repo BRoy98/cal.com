@@ -71,33 +71,46 @@ export default class BaseEmail {
       },
       ...(parseSubject.success && { subject: decodeHTML(parseSubject.data) }),
     };
-    const { createTransport } = await import("nodemailer");
-    await new Promise((resolve, reject) =>
-      createTransport(this.getMailerOptions().transport).sendMail(
-        payloadWithUnEscapedSubject,
-        (_err, info) => {
-          if (_err) {
-            const err = getServerErrorFromUnknown(_err);
-            this.printNodeMailerError(err);
-            reject(err);
-          } else {
-            resolve(info);
+    if (this.getMailerOptions().transportType === "ses") {
+      const { sendViaSes } = await import("@calcom/lib/ses/sendViaSes");
+      await sendViaSes(payloadWithUnEscapedSubject).catch((e) =>
+        console.error(
+          "sendEmail[ses]",
+          `from: ${"from" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.from : ""}`,
+          `subject: ${"subject" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.subject : ""}`,
+          e
+        )
+      );
+    } else {
+      const { createTransport } = await import("nodemailer");
+      await new Promise((resolve, reject) =>
+        createTransport(this.getMailerOptions().transport).sendMail(
+          payloadWithUnEscapedSubject,
+          (_err, info) => {
+            if (_err) {
+              const err = getServerErrorFromUnknown(_err);
+              this.printNodeMailerError(err);
+              reject(err);
+            } else {
+              resolve(info);
+            }
           }
-        }
-      )
-    ).catch((e) =>
-      console.error(
-        "sendEmail",
-        `from: ${"from" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.from : ""}`,
-        `subject: ${"subject" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.subject : ""}`,
-        e
-      )
-    );
+        )
+      ).catch((e) =>
+        console.error(
+          "sendEmail",
+          `from: ${"from" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.from : ""}`,
+          `subject: ${"subject" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.subject : ""}`,
+          e
+        )
+      );
+    }
     return new Promise((resolve) => resolve("send mail async"));
   }
   protected getMailerOptions() {
     return {
       transport: serverConfig.transport,
+      transportType: serverConfig.transportType,
       from: serverConfig.from,
       headers: serverConfig.headers,
     };

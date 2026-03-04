@@ -54,8 +54,15 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
   };
 }
 
+function getTransportType(): "smtp" | "ses" {
+  const value = process.env.EMAIL_TRANSPORT?.toLowerCase();
+  if (value === "ses") return "ses";
+  return "smtp";
+}
+
 export const serverConfig = {
   transport: detectTransport(),
+  transportType: getTransportType(),
   from: process.env.EMAIL_FROM,
   headers: getAdditionalEmailHeaders()[process.env.EMAIL_SERVER_HOST || ""] || undefined,
 };
