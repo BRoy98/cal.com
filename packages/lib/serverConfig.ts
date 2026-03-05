@@ -5,7 +5,25 @@ import { isENVDev } from "@calcom/lib/env";
 
 import { getAdditionalEmailHeaders } from "./getAdditionalEmailHeaders";
 
-function detectTransport(): SendmailTransport.Options | SMTPConnection.Options | string {
+type EmailTransportType = "smtp" | "ses" | "resend";
+
+function getTransportType(): EmailTransportType {
+  const value = process.env.EMAIL_TRANSPORT?.toLowerCase();
+  if (value === "ses") return "ses";
+  if (value === "resend") return "resend";
+  // Auto-detect resend when RESEND_API_KEY is set without explicit SMTP host config
+  if (process.env.RESEND_API_KEY && !process.env.EMAIL_SERVER_HOST && !process.env.EMAIL_SERVER) {
+    return "resend";
+  }
+  return "smtp";
+}
+
+function detectTransport(
+  transportType: EmailTransportType
+): SendmailTransport.Options | SMTPConnection.Options | string | undefined {
+  // Non-SMTP transports handle their own delivery; no nodemailer transport needed
+  if (transportType !== "smtp") return undefined;
+
   if (process.env.RESEND_API_KEY) {
     const transport = {
       host: "smtp.resend.com",
@@ -54,16 +72,11 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
   };
 }
 
-function getTransportType(): "smtp" | "ses" | "resend" {
-  const value = process.env.EMAIL_TRANSPORT?.toLowerCase();
-  if (value === "ses") return "ses";
-  if (value === "resend") return "resend";
-  return "smtp";
-}
+const transportType = getTransportType();
 
 export const serverConfig = {
-  transport: detectTransport(),
-  transportType: getTransportType(),
+  transport: detectTransport(transportType),
+  transportType,
   from: process.env.EMAIL_FROM,
   headers: getAdditionalEmailHeaders()[process.env.EMAIL_SERVER_HOST || ""] || undefined,
 };
