@@ -54,9 +54,10 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
   };
 }
 
-function getTransportType(): "smtp" | "ses" {
+function getTransportType(): "smtp" | "ses" | "resend" {
   const value = process.env.EMAIL_TRANSPORT?.toLowerCase();
   if (value === "ses") return "ses";
+  if (value === "resend") return "resend";
   return "smtp";
 }
 

@@ -38,6 +38,9 @@ const sendVerificationRequest = async ({
   if (serverConfig.transportType === "ses") {
     const { sendViaSes } = await import("@calcom/lib/ses/sendViaSes");
     await sendViaSes(mailPayload);
+  } else if (serverConfig.transportType === "resend") {
+    const { sendViaResend } = await import("@calcom/lib/resend/sendViaResend");
+    await sendViaResend(mailPayload);
   } else {
     const transporter = nodemailer.createTransport<TransportOptions>({
       ...(serverConfig.transport as TransportOptions),

@@ -71,11 +71,22 @@ export default class BaseEmail {
       },
       ...(parseSubject.success && { subject: decodeHTML(parseSubject.data) }),
     };
-    if (this.getMailerOptions().transportType === "ses") {
+    const transportType = this.getMailerOptions().transportType;
+    if (transportType === "ses") {
       const { sendViaSes } = await import("@calcom/lib/ses/sendViaSes");
       await sendViaSes(payloadWithUnEscapedSubject).catch((e) =>
         console.error(
           "sendEmail[ses]",
+          `from: ${"from" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.from : ""}`,
+          `subject: ${"subject" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.subject : ""}`,
+          e
+        )
+      );
+    } else if (transportType === "resend") {
+      const { sendViaResend } = await import("@calcom/lib/resend/sendViaResend");
+      await sendViaResend(payloadWithUnEscapedSubject).catch((e) =>
+        console.error(
+          "sendEmail[resend]",
           `from: ${"from" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.from : ""}`,
           `subject: ${"subject" in payloadWithUnEscapedSubject ? payloadWithUnEscapedSubject.subject : ""}`,
           e
